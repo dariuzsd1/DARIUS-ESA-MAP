@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atlas of the European Space Network</title>
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    :root {
+      --esa-blue: #00325b;
+      --light-bg: #f8f9fa;
+      --border-color: #dee2e6;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: var(--light-bg);
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: var(--esa-blue);
+      margin-bottom: 5px;
+    }
+    p.subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 25px;
+    }
+    #map {
+      height: 500px;
+      width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+      border: 1px solid var(--border-color);
+    }
+    .table-container {
+      overflow-x: auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border: 1px solid var(--border-color);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+    th, td {
+      padding: 14px 20px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 14px;
+    }
+    th {
+      background-color: var(--esa-blue);
+      color: white;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+    tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+    tr:hover {
+      background-color: #e9ecef;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>European Space Network Atlas</h1>
+  <p class="subtitle">Real-time HQ locations for all 22 ESA Member States</p>
+
+  <div id="map"></div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Country</th>
+          <th>National Space Agency</th>
+          <th>City</th>
+          <th>Address</th>
+          <th>Coordinates (Lat, Lng)</th>
+        </tr>
+      </thead>
+      <tbody id="agency-table-body">
+        </tbody>
+    </table>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <script>
+    // Initialize the map centered on Europe
+    const map = L.map('map').setView([49.0, 10.0], 4);
+
+    // Add OpenStreetMap tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Dataset of all 22 ESA Member States' National Space Agencies
+    const agencies = [
+      { country: 'Austria', name: 'Aeronautics and Space Agency (ALR)', city: 'Vienna', address: 'Sensengasse 1, 1090 Vienna', lat: 48.2209, lng: 16.3541 },
+      { country: 'Belgium', name: 'Belgian Science Policy Office (BELSPO)', city: 'Brussels', address: 'WTC III, Simon Bolivarlaan 30, 1000 Brussels', lat: 50.8606, lng: 4.3562 },
+      { country: 'Czech Republic', name: 'Ministry of Transport - Space Activities', city: 'Prague', address: 'Nábřeží Ludvíka Svobody 1222/12, 110 15 Prague', lat: 50.0931, lng: 14.4338 },
+      { country: 'Denmark', name: 'Danish Agency for Science and Higher Education', city: 'Copenhagen', address: 'Haraldsgade 53, 2100 Copenhagen', lat: 55.7042, lng: 12.5539 },
+      { country: 'Estonia', name: 'Estonian Space Office', city: 'Tallinn', address: 'Sepapaja 6, 11415 Tallinn', lat: 59.4215, lng: 24.8016 },
+      { country: 'Finland', name: 'Business Finland', city: 'Helsinki', address: 'Porkkalankatu 1, 00180 Helsinki', lat: 60.1643, lng: 24.9142 },
+      { country: 'France', name: 'National Centre for Space Studies (CNES)', city: 'Paris', address: '2 Place Maurice Quentin, 75039 Paris', lat: 48.8617, lng: 2.3465 },
+      { country: 'Germany', name: 'German Aerospace Center (DLR)', city: 'Cologne', address: 'Linder Höhe, 51147 Cologne', lat: 50.8540, lng: 7.1221 },
+      { country: 'Greece', name: 'Hellenic Space Center', city: 'Athens', address: '11 Fragoudi & Al. Pantou, Kallithea 101-63', lat: 37.9583, lng: 23.7144 },
+      { country: 'Hungary', name: 'Hungarian Space Office', city: 'Budapest', address: 'Medve utca 25-29, 1027 Budapest', lat: 47.5098, lng: 19.0347 },
+      { country: 'Ireland', name: 'Enterprise Ireland', city: 'Dublin', address: 'The Plaza, East Point Business Park, Dublin 3', lat: 53.3601, lng: -6.2163 },
+      { country: 'Italy', name: 'Italian Space Agency (ASI)', city: 'Rome', address: 'Via del Politecnico snc, 00133 Rome', lat: 41.8623, lng: 12.6366 },
+      { country: 'Luxembourg', name: 'Luxembourg Space Agency (LSA)', city: 'Luxembourg City', address: '19-21 Boulevard Royal, 2449 Luxembourg', lat: 49.6121, lng: 6.1265 },
+      { country: 'Netherlands', name: 'Netherlands Space Office (NSO)', city: 'The Hague', address: 'Prinses Beatrixlaan 2, 2595 AL The Hague', lat: 52.0807, lng: 4.3276 },
+      { country: 'Norway', name: 'Norwegian Space Agency (NOSA)', city: 'Oslo', address: 'Drammensveien 165, 0277 Oslo', lat: 59.9202, lng: 10.6865 },
+      { country: 'Poland', name: 'Polish Space Agency (POLSA)', city: 'Gdańsk', address: 'Trzy Lipy 3, 80-172 Gdańsk', lat: 54.3644, lng: 18.5721 },
+      { country: 'Portugal', name: 'Portugal Space', city: 'Lisbon', address: 'Estrada das Laranjeiras 205, 1649-018 Lisbon', lat: 38.7468, lng: -9.1672 },
+      { country: 'Romania', name: 'Romanian Space Agency (ROSA)', city: 'Bucharest', address: 'Str. Mendeleev 21-25, 010362 Bucharest', lat: 44.4442, lng: 26.0988 },
+      { country: 'Spain', name: 'Spanish Space Agency (AEE)', city: 'Seville', address: 'Edificio CREA, C. José Galán Merino, 41015 Seville', lat: 37.4206, lng: -5.9863 },
+      { country: 'Sweden', name: 'Swedish National Space Agency (SNSA)', city: 'Solna', address: 'Hemvärnsgatan 15, 171 54 Solna', lat: 59.3516, lng: 17.9754 },
+      { country: 'Switzerland', name: 'Swiss Space Office', city: 'Bern', address: 'Einsteinstrasse 2, 3003 Bern', lat: 46.9427, lng: 7.4526 },
+      { country: 'United Kingdom', name: 'UK Space Agency (UKSA)', city: 'Swindon', address: 'Polaris House, North Star Avenue, Swindon, SN2 1SZ', lat: 51.5647, lng: -1.7865 }
+    ];
+
+    const tbody = document.getElementById('agency-table-body');
+
+    // Populate Map Markers and Table Rows dynamically
+    agencies.forEach(agency => {
+      // 1. Plot map marker
+      const marker = L.marker([agency.lat, agency.lng]).addTo(map);
+      marker.bindPopup(`<strong>${agency.name}</strong><br>${agency.city}, ${agency.country}`);
+
+      // 2. Append row to table
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><strong>${agency.country}</strong></td>
+        <td>${agency.name}</td>
+        <td>${agency.city}</td>
+        <td>${agency.address}</td>
+        <td>${agency.lat.toFixed(4)}, ${agency.lng.toFixed(4)}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  </script>
+</body>
+</html>
